@@ -1,0 +1,2 @@
+[alias]
+g = "openapi-generator generate -g rust -i openapi.yaml -c config.yaml"
