@@ -12,7 +12,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-cerebras-rs = "0.0.1"
+cerebras-rs = "0.0.2"
 ```
 
 ## Quick Start

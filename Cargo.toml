@@ -1,6 +1,6 @@
 [package]
 name = "cerebras-rs"
-version = "0.0.1"
+version = "0.0.2"
 authors = ["Nikolas Yanek-Chrones <nik@sunnyhealth.ai>"]
 description = "High-performance Rust SDK for Cerebras Inference API - Low-latency AI model inference powered by Cerebras Wafer-Scale Engines"
 license = "MIT"
