@@ -16,7 +16,7 @@ pin_project! {
     /// Stream handler for chat completion responses
     pub struct ChatCompletionStream {
         #[pin]
-        inner: Box<dyn Stream<Item = Result<ChatCompletionChunk>> + Send + Unpin>,
+        inner: Pin<Box<dyn Stream<Item = Result<ChatCompletionChunk>> + Send>>,
     }
 }
 
@@ -68,58 +68,75 @@ impl ChatCompletionStream {
             });
             
         Ok(Self {
-            inner: Box::new(stream),
+            inner: Box::pin(stream),
         })
     }
     
     /// Collect all chunks into a complete response
     pub async fn collect(mut self) -> Result<ChatCompletion> {
         let mut messages = Vec::new();
-        let mut model = String::new();
-        let mut id = String::new();
-        let mut created = 0;
+        let mut model = None;
+        let mut id = None;
+        let mut created = None;
         let mut finish_reason = None;
         
         while let Some(chunk) = self.next().await {
             let chunk = chunk?;
             
-            if id.is_empty() {
+            if id.is_none() && chunk.id.is_some() {
                 id = chunk.id;
             }
-            if model.is_empty() {
+            if model.is_none() && chunk.model.is_some() {
                 model = chunk.model;
             }
-            if created == 0 {
+            if created.is_none() && chunk.created.is_some() {
                 created = chunk.created;
             }
             
-            for choice in chunk.choices {
-                if let Some(content) = choice.delta.content {
-                    messages.push(content);
-                }
-                if choice.finish_reason.is_some() {
-                    finish_reason = choice.finish_reason;
+            if let Some(choices) = chunk.choices {
+                for choice in choices {
+                    if let Some(delta) = choice.delta {
+                        if let Some(content) = delta.content {
+                            messages.push(content);
+                        }
+                    }
+                    if choice.finish_reason.is_some() {
+                        finish_reason = choice.finish_reason.map(|fr| match fr {
+                            crate::models::chat_choice_delta::FinishReason::Stop => {
+                                crate::models::chat_choice::FinishReason::Stop
+                            }
+                            crate::models::chat_choice_delta::FinishReason::Length => {
+                                crate::models::chat_choice::FinishReason::Length
+                            }
+                            crate::models::chat_choice_delta::FinishReason::ToolCalls => {
+                                crate::models::chat_choice::FinishReason::ToolCalls
+                            }
+                            crate::models::chat_choice_delta::FinishReason::ContentFilter => {
+                                crate::models::chat_choice::FinishReason::ContentFilter
+                            }
+                        });
+                    }
                 }
             }
         }
         
         Ok(ChatCompletion {
             id,
-            object: "chat.completion".to_string(),
+            object: Some(crate::models::chat_completion::Object::ChatPeriodCompletion),
             created,
             model,
             system_fingerprint: None,
-            choices: vec![ChatChoice {
-                index: 0,
-                message: ChatMessage {
-                    role: "assistant".to_string(),
+            choices: Some(vec![ChatChoice {
+                index: Some(0),
+                message: Some(ChatMessage {
+                    role: crate::models::chat_message::Role::Assistant,
                     content: messages.join(""),
                     name: None,
                     tool_calls: None,
                     tool_call_id: None,
-                },
+                }),
                 finish_reason,
-            }],
+            }]),
             usage: None,
             time_info: None,
         })
@@ -139,7 +156,7 @@ pin_project! {
     /// Stream handler for completion responses
     pub struct CompletionStream {
         #[pin]
-        inner: Box<dyn Stream<Item = Result<CompletionChunk>> + Send + Unpin>,
+        inner: Pin<Box<dyn Stream<Item = Result<CompletionChunk>> + Send>>,
     }
 }
 
@@ -191,52 +208,61 @@ impl CompletionStream {
             });
             
         Ok(Self {
-            inner: Box::new(stream),
+            inner: Box::pin(stream),
         })
     }
     
     /// Collect all chunks into a complete response
     pub async fn collect(mut self) -> Result<Completion> {
         let mut texts = Vec::new();
-        let mut model = String::new();
-        let mut id = String::new();
-        let mut created = 0;
+        let mut model = None;
+        let mut id = None;
+        let mut created = None;
         let mut finish_reason = None;
         
         while let Some(chunk) = self.next().await {
             let chunk = chunk?;
             
-            if id.is_empty() {
+            if id.is_none() && chunk.id.is_some() {
                 id = chunk.id;
             }
-            if model.is_empty() {
+            if model.is_none() && chunk.model.is_some() {
                 model = chunk.model;
             }
-            if created == 0 {
+            if created.is_none() && chunk.created.is_some() {
                 created = chunk.created;
             }
             
-            for choice in chunk.choices {
-                if let Some(text) = choice.text {
-                    texts.push(text);
-                }
-                if choice.finish_reason.is_some() {
-                    finish_reason = choice.finish_reason;
+            if let Some(choices) = chunk.choices {
+                for choice in choices {
+                    if let Some(text) = choice.text {
+                        texts.push(text);
+                    }
+                    if choice.finish_reason.is_some() {
+                        finish_reason = choice.finish_reason.map(|fr| match fr {
+                            crate::models::completion_choice_delta::FinishReason::Stop => {
+                                crate::models::completion_choice::FinishReason::Stop
+                            }
+                            crate::models::completion_choice_delta::FinishReason::Length => {
+                                crate::models::completion_choice::FinishReason::Length
+                            }
+                        });
+                    }
                 }
             }
         }
         
         Ok(Completion {
             id,
-            object: "text_completion".to_string(),
+            object: Some(crate::models::completion::Object::TextCompletion),
             created,
             model,
             system_fingerprint: None,
-            choices: vec![CompletionChoice {
-                index: 0,
-                text: texts.join(""),
+            choices: Some(vec![CompletionChoice {
+                index: Some(0),
+                text: Some(texts.join("")),
                 finish_reason,
-            }],
+            }]),
             usage: None,
             time_info: None,
         })

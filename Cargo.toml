@@ -15,7 +15,6 @@ categories = ["api-bindings", "asynchronous"]
 default = ["rustls-tls"]
 rustls-tls = ["reqwest/rustls-tls"]
 native-tls = ["reqwest/native-tls"]
-stream = ["tokio-stream", "futures-util", "eventsource-stream", "pin-project-lite"]
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
@@ -30,11 +29,11 @@ reqwest = { version = "0.12", default-features = false, features = ["json", "mul
 tokio = { version = "1.35", features = ["macros", "rt-multi-thread"] }
 async-trait = "0.1"
 
-# Optional dependencies for streaming
-tokio-stream = { version = "0.1", optional = true }
-futures-util = { version = "0.3", optional = true }
-eventsource-stream = { version = "0.2", optional = true }
-pin-project-lite = { version = "0.2", optional = true }
+# Streaming dependencies
+tokio-stream = { version = "0.1" }
+futures-util = { version = "0.3" }
+eventsource-stream = { version = "0.2" }
+pin-project-lite = { version = "0.2" }
 
 # Error handling
 thiserror = "2.0"
@@ -49,12 +48,9 @@ pretty_assertions = "1.4"
 
 [[example]]
 name = "chat_completion"
-required-features = ["stream"]
 
 [[example]]
 name = "streaming"
-required-features = ["stream"]
 
 [[example]]
 name = "function_calling"
-required-features = ["stream"]

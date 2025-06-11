@@ -141,10 +141,8 @@
 //! 
 //! ```rust,no_run
 //! use cerebras_rs::{Client, ChatCompletionRequest, ModelIdentifier};
-//! #[cfg(feature = "stream")]
 //! use futures_util::StreamExt;
 //! 
-//! #[cfg(feature = "stream")]
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
 //!     let client = Client::from_env()?;
@@ -174,11 +172,6 @@
 //!     }
 //!     
 //!     Ok(())
-//! }
-//! 
-//! #[cfg(not(feature = "stream"))]
-//! fn main() {
-//!     println!("Stream feature not enabled");
 //! }
 //! ```
 //! 
@@ -253,13 +246,9 @@ extern crate base64;
 extern crate tokio;
 extern crate async_trait;
 
-#[cfg(feature = "stream")]
 extern crate tokio_stream;
-#[cfg(feature = "stream")]
 extern crate futures_util;
-#[cfg(feature = "stream")]
 extern crate eventsource_stream;
-#[cfg(feature = "stream")]
 extern crate pin_project_lite;
 
 extern crate thiserror;
@@ -283,7 +272,6 @@ pub use client::Client;
 pub mod builders;
 
 // Streaming support
-#[cfg(feature = "stream")]
 pub mod streaming;
 
 // Error handling
@@ -309,8 +297,7 @@ pub mod prelude {
         ModelIdentifier,
     };
     
-    #[cfg(feature = "stream")]
-    pub use crate::streaming::{StreamHandler, ChatCompletionStream, CompletionStream};
+    pub use crate::streaming::{ChatCompletionStream, CompletionStream};
     
     pub use crate::builders::{ChatCompletionBuilder, CompletionBuilder};
 }

@@ -120,11 +120,24 @@ impl ChatCompletionBuilder {
         self
     }
     
-    /// Set JSON response format
-    pub fn json_response(mut self) -> Self {
+    /// Set JSON response format with a schema
+    pub fn json_response_with_schema(mut self, schema: crate::models::JsonSchema) -> Self {
         self.response_format = Some(ResponseFormat {
             r#type: Some(crate::response_format::Type::JsonSchema),
-            json_schema: None,
+            json_schema: Some(schema),
+        });
+        self
+    }
+    
+    /// Set JSON response format with schema details
+    pub fn json_schema(mut self, name: impl Into<String>, schema: serde_json::Value, strict: bool) -> Self {
+        self.response_format = Some(ResponseFormat {
+            r#type: Some(crate::response_format::Type::JsonSchema),
+            json_schema: Some(crate::models::JsonSchema {
+                name: Some(name.into()),
+                schema: Some(schema),
+                strict: Some(strict),
+            }),
         });
         self
     }

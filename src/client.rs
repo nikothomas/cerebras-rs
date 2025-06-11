@@ -160,7 +160,6 @@ impl Client {
     /// # Ok(())
     /// # }
     /// ```
-    #[cfg(feature = "stream")]
     pub async fn chat_completion_stream(
         &self,
         mut request: ChatCompletionRequest,
@@ -186,7 +185,6 @@ impl Client {
     }
     
     /// Create a text completion with streaming
-    #[cfg(feature = "stream")]
     pub async fn completion_stream(
         &self,
         mut request: CompletionRequest,

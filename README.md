@@ -6,16 +6,6 @@
 
 High-performance Rust SDK for the Cerebras Inference API, providing low-latency AI model inference powered by Cerebras Wafer-Scale Engines and CS-3 systems.
 
-## Features
-
-- 🚀 **High Performance** - Optimized for Cerebras' ultra-fast inference
-- 🔄 **Async/Await** - Built on Tokio for concurrent operations
-- 📡 **Streaming Support** - Real-time token streaming for chat and completions
-- 🛠️ **Builder Patterns** - Ergonomic API for constructing requests
-- 🎯 **Type Safety** - Strongly typed requests and responses
-- 🔧 **Function Calling** - Full support for tool use and function calling
-- 📝 **Comprehensive Examples** - Ready-to-run examples for common use cases
-
 ## Installation
 
 Add this to your `Cargo.toml`:
@@ -23,9 +13,6 @@ Add this to your `Cargo.toml`:
 ```toml
 [dependencies]
 cerebras-rs = "0.0.1"
-
-# For streaming support
-cerebras-rs = { version = "0.0.1", features = ["stream"] }
 ```
 
 ## Quick Start
@@ -119,10 +106,8 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
 
 ```rust,no_run
 use cerebras_rs::prelude::*;
-#[cfg(feature = "stream")]
 use futures_util::StreamExt;
 
-#[cfg(feature = "stream")]
 #[tokio::main]
 async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     let client = Client::from_env()?;
@@ -152,11 +137,6 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     }
     
     Ok(())
-}
-
-#[cfg(not(feature = "stream"))]
-fn main() {
-    println!("Stream feature not enabled");
 }
 ```
 
@@ -342,9 +322,9 @@ Check out the `examples/` directory for more comprehensive examples:
 Run examples with:
 
 ```bash
-cargo run --example chat_completion --features stream
-cargo run --example streaming --features stream
-cargo run --example function_calling --features stream
+cargo run --example chat_completion
+cargo run --example streaming
+cargo run --example function_calling
 ```
 
 ## Contributing

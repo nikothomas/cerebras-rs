@@ -2,11 +2,10 @@
 
 use cerebras_rs::prelude::*;
 use futures_util::StreamExt;
-use std::error::Error;
 use std::io::{self, Write};
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+async fn main() -> Result<()> {
     // Initialize the client
     let client = Client::from_env()?;
     
@@ -22,15 +21,19 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut stream = client.chat_completion_stream(request).await?;
     
     print!("Story: ");
-    io::stdout().flush()?;
+    let _ = io::stdout().flush();
     
     while let Some(chunk) = stream.next().await {
         match chunk {
             Ok(chunk) => {
-                for choice in &chunk.choices {
-                    if let Some(content) = &choice.delta.content {
-                        print!("{}", content);
-                        io::stdout().flush()?;
+                if let Some(choices) = &chunk.choices {
+                    for choice in choices {
+                        if let Some(delta) = &choice.delta {
+                            if let Some(content) = &delta.content {
+                                print!("{}", content);
+                                let _ = io::stdout().flush();
+                            }
+                        }
                     }
                 }
             }
@@ -52,21 +55,25 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut token_count = 0;
     
     print!("Response: ");
-    io::stdout().flush()?;
+    let _ = io::stdout().flush();
     
     while let Some(chunk) = stream.next().await {
         match chunk {
             Ok(chunk) => {
-                for choice in &chunk.choices {
-                    if let Some(content) = &choice.delta.content {
-                        print!("{}", content);
-                        io::stdout().flush()?;
-                        token_count += 1;
-                    }
-                    
-                    if let Some(reason) = &choice.finish_reason {
-                        println!("\n\nFinished: {:?}", reason);
-                        println!("Approximate tokens generated: {}", token_count);
+                if let Some(choices) = &chunk.choices {
+                    for choice in choices {
+                        if let Some(delta) = &choice.delta {
+                            if let Some(content) = &delta.content {
+                                print!("{}", content);
+                                let _ = io::stdout().flush();
+                                token_count += 1;
+                            }
+                        }
+                        
+                        if let Some(reason) = &choice.finish_reason {
+                            println!("\n\nFinished: {:?}", reason);
+                            println!("Approximate tokens generated: {}", token_count);
+                        }
                     }
                 }
             }
@@ -86,8 +93,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let stream = client.chat_completion_stream(request).await?;
     let complete_response = stream.collect().await?;
     
-    println!("Complete response collected:");
-    println!("{}", complete_response.choices[0].message.content);
+    if let Some(choices) = &complete_response.choices {
+        if let Some(first_choice) = choices.first() {
+            if let Some(message) = &first_choice.message {
+                println!("Complete response collected:");
+                println!("{}", message.content);
+            }
+        }
+    }
     
     // Example 4: Streaming text completion
     println!("\n=== Streaming Text Completion ===");
@@ -101,15 +114,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut stream = client.completion_stream(request).await?;
     
     print!("Completion: The future of artificial intelligence is");
-    io::stdout().flush()?;
+    let _ = io::stdout().flush();
     
     while let Some(chunk) = stream.next().await {
         match chunk {
             Ok(chunk) => {
-                for choice in &chunk.choices {
-                    if let Some(text) = &choice.text {
-                        print!("{}", text);
-                        io::stdout().flush()?;
+                if let Some(choices) = &chunk.choices {
+                    for choice in choices {
+                        if let Some(text) = &choice.text {
+                            print!("{}", text);
+                            let _ = io::stdout().flush();
+                        }
                     }
                 }
             }
@@ -133,10 +148,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
     while let Some(chunk) = stream.next().await {
         match chunk {
             Ok(chunk) => {
-                for choice in &chunk.choices {
-                    if let Some(content) = &choice.delta.content {
-                        print!("{}", content);
-                        io::stdout().flush()?;
+                if let Some(choices) = &chunk.choices {
+                    for choice in choices {
+                        if let Some(delta) = &choice.delta {
+                            if let Some(content) = &delta.content {
+                                print!("{}", content);
+                                let _ = io::stdout().flush();
+                            }
+                        }
                     }
                 }
             }
@@ -145,9 +164,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 eprintln!("\nStreaming error #{}: {}", error_count, e);
                 
                 // Decide whether to continue or break based on error type
-                match e {
-                    Error::RateLimit { .. } => {
-                        eprintln!("Rate limit hit, stopping stream");
+                match &e {
+                    Error::RateLimit(retry_after) => {
+                        eprintln!("Rate limit hit, retry after {} seconds", retry_after);
                         break;
                     }
                     _ => {

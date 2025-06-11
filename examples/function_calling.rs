@@ -1,12 +1,11 @@
 //! Example of function calling with the Cerebras SDK
 
 use cerebras_rs::prelude::*;
-use cerebras_rs::models::{Tool, FunctionDefinition, ToolChoiceOption};
+use cerebras_rs::models::{Tool, FunctionDefinition, ToolChoiceOption, FunctionName, tool};
 use serde_json::json;
-use std::error::Error;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+async fn main() -> Result<()> {
     // Initialize the client
     let client = Client::from_env()?;
     
@@ -15,7 +14,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     
     // Define a weather function
     let weather_function = Tool {
-        r#type: Some(models::tool::Type::Function),
+        r#type: Some(tool::Type::Function),
         function: Some(FunctionDefinition::new("get_weather".to_string())),
     };
     
@@ -29,38 +28,50 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let response = client.chat_completion(request).await?;
     
     // Check if the model wants to call a function
-    if let Some(tool_calls) = &response.choices[0].message.tool_calls {
-        for tool_call in tool_calls {
-            println!("Function call: {}", tool_call.function.name.as_ref().unwrap_or(&"unknown".to_string()));
-            println!("Arguments: {}", tool_call.function.arguments.as_ref().unwrap_or(&"{}".to_string()));
-            
-            // Simulate function execution
-            let weather_result = simulate_weather_api(tool_call.function.arguments.as_deref().unwrap_or("{}"));
-            
-            // Send the function result back to the model
-            let follow_up = ChatCompletionRequest::builder(ModelIdentifier::Llama3Period18b)
-                .message(response.choices[0].message.clone())
-                .message(ChatMessage::tool(weather_result, tool_call.id.clone().unwrap_or_default()))
-                .temperature(0.3)
-                .build();
-            
-            let final_response = client.chat_completion(follow_up).await?;
-            println!("Final response: {}", final_response.choices[0].message.content.as_ref().unwrap_or(&"No response".to_string()));
+    if let Some(choices) = &response.choices {
+        if let Some(first_choice) = choices.first() {
+            if let Some(message) = &first_choice.message {
+                if let Some(tool_calls) = &message.tool_calls {
+                    for tool_call in tool_calls {
+                        println!("Function call: {}", tool_call.name.as_ref().unwrap_or(&"unknown".to_string()));
+                        println!("Arguments: {}", tool_call.arguments.as_ref().unwrap_or(&"{}".to_string()));
+                        
+                        // Simulate function execution
+                        let weather_result = simulate_weather_api(tool_call.arguments.as_deref().unwrap_or("{}"));
+                        
+                        // Send the function result back to the model
+                        let follow_up = ChatCompletionRequest::builder(ModelIdentifier::Llama3Period18b)
+                            .message(message.clone())
+                            .message(ChatMessage::tool(weather_result, format!("call_{}", tool_call.name.as_ref().unwrap_or(&"unknown".to_string()))))
+                            .temperature(0.3)
+                            .build();
+                        
+                        let final_response = client.chat_completion(follow_up).await?;
+                        if let Some(final_choices) = &final_response.choices {
+                            if let Some(final_choice) = final_choices.first() {
+                                if let Some(final_message) = &final_choice.message {
+                                    println!("Final response: {}", final_message.content);
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    println!("Response: {}", message.content);
+                }
+            }
         }
-    } else {
-        println!("Response: {}", response.choices[0].message.content.as_ref().unwrap_or(&"No response".to_string()));
     }
     
     // Example 2: Multiple functions
     println!("\n=== Multiple Functions ===");
     
     let calculator_function = Tool {
-        r#type: Some(models::tool::Type::Function),
+        r#type: Some(tool::Type::Function),
         function: Some(FunctionDefinition::new("calculate".to_string())),
     };
     
     let search_function = Tool {
-        r#type: Some(models::tool::Type::Function),
+        r#type: Some(tool::Type::Function),
         function: Some(FunctionDefinition::new("search_web".to_string())),
     };
     
@@ -72,39 +83,56 @@ async fn main() -> Result<(), Box<dyn Error>> {
     
     let response = client.chat_completion(request).await?;
     
-    if let Some(tool_calls) = &response.choices[0].message.tool_calls {
-        let mut messages = vec![response.choices[0].message.clone()];
-        
-        for tool_call in tool_calls {
-            println!("\nFunction: {}", tool_call.function.name.as_ref().unwrap_or(&"unknown".to_string()));
-            println!("Arguments: {}", tool_call.function.arguments.as_ref().unwrap_or(&"{}".to_string()));
-            
-            let result = match tool_call.function.name.as_deref().unwrap_or("") {
-                "calculate" => simulate_calculator(tool_call.function.arguments.as_deref().unwrap_or("{}")),
-                "search_web" => simulate_web_search(tool_call.function.arguments.as_deref().unwrap_or("{}")),
-                _ => "Unknown function".to_string(),
-            };
-            
-            messages.push(ChatMessage::tool(result, tool_call.id.clone().unwrap_or_default()));
+    if let Some(choices) = &response.choices {
+        if let Some(first_choice) = choices.first() {
+            if let Some(message) = &first_choice.message {
+                if let Some(tool_calls) = &message.tool_calls {
+                    let mut messages = vec![message.clone()];
+                    
+                    for tool_call in tool_calls {
+                        println!("\nFunction: {}", tool_call.name.as_ref().unwrap_or(&"unknown".to_string()));
+                        println!("Arguments: {}", tool_call.arguments.as_ref().unwrap_or(&"{}".to_string()));
+                        
+                        let result = match tool_call.name.as_deref().unwrap_or("") {
+                            "calculate" => simulate_calculator(tool_call.arguments.as_deref().unwrap_or("{}")),
+                            "search_web" => simulate_web_search(tool_call.arguments.as_deref().unwrap_or("{}")),
+                            _ => "Unknown function".to_string(),
+                        };
+                        
+                        messages.push(ChatMessage::tool(result, format!("call_{}", tool_call.name.as_ref().unwrap_or(&"unknown".to_string()))));
+                    }
+                    
+                    // Get final response with all function results
+                    let follow_up = ChatCompletionRequest::builder(ModelIdentifier::Llama3Period18b)
+                        .messages(messages)
+                        .temperature(0.3)
+                        .build();
+                    
+                    let final_response = client.chat_completion(follow_up).await?;
+                    if let Some(final_choices) = &final_response.choices {
+                        if let Some(final_choice) = final_choices.first() {
+                            if let Some(final_message) = &final_choice.message {
+                                println!("\nFinal response: {}", final_message.content);
+                            }
+                        }
+                    }
+                }
+            }
         }
-        
-        // Get final response with all function results
-        let follow_up = ChatCompletionRequest::builder(ModelIdentifier::Llama3Period18b)
-            .messages(messages)
-            .temperature(0.3)
-            .build();
-        
-        let final_response = client.chat_completion(follow_up).await?;
-        println!("\nFinal response: {}", final_response.choices[0].message.content.as_ref().unwrap_or(&"No response".to_string()));
     }
     
     // Example 3: Forcing specific function use
     println!("\n=== Forcing Function Use ===");
     
+    let weather_function = Tool {
+        r#type: Some(tool::Type::Function),
+        function: Some(FunctionDefinition::new("get_weather".to_string())),
+    };
+    
     let request = ChatCompletionRequest::builder(ModelIdentifier::Llama3Period18b)
         .user_message("Tell me about Paris")
         .tool(weather_function.clone())
-        .tool_choice(ToolChoiceOption::FunctionName(models::FunctionName {
+        .tool_choice(ToolChoiceOption::FunctionName(FunctionName {
             name: Some("get_weather".to_string()),
         }))
         .temperature(0.3)
@@ -112,15 +140,32 @@ async fn main() -> Result<(), Box<dyn Error>> {
     
     let response = client.chat_completion(request).await?;
     
-    if let Some(tool_calls) = &response.choices[0].message.tool_calls {
-        println!("Forced function call: {}", tool_calls[0].function.name.as_ref().unwrap_or(&"unknown".to_string()));
-        println!("Arguments: {}", tool_calls[0].function.arguments.as_ref().unwrap_or(&"{}".to_string()));
+    if let Some(choices) = &response.choices {
+        if let Some(first_choice) = choices.first() {
+            if let Some(message) = &first_choice.message {
+                if let Some(tool_calls) = &message.tool_calls {
+                    if let Some(first_call) = tool_calls.first() {
+                        println!("Forced function call: {}", first_call.name.as_ref().unwrap_or(&"unknown".to_string()));
+                        println!("Arguments: {}", first_call.arguments.as_ref().unwrap_or(&"{}".to_string()));
+                    }
+                }
+            }
+        }
     }
     
     // Example 4: Streaming with function calls
-    #[cfg(feature = "stream")]
     {
         println!("\n=== Streaming with Functions ===");
+        
+        let calculator_function = Tool {
+            r#type: Some(tool::Type::Function),
+            function: Some(FunctionDefinition::new("calculate".to_string())),
+        };
+        
+        let weather_function = Tool {
+            r#type: Some(tool::Type::Function),
+            function: Some(FunctionDefinition::new("get_weather".to_string())),
+        };
         
         let request = ChatCompletionRequest::builder(ModelIdentifier::Llama3Period18b)
             .user_message("What's 15 + 27 and what's the weather in London?")
@@ -132,12 +177,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
         let stream = client.chat_completion_stream(request).await?;
         let complete_response = stream.collect().await?;
         
-        if let Some(tool_calls) = &complete_response.choices[0].message.tool_calls {
-            println!("Functions to call:");
-            for tool_call in tool_calls {
-                println!("  - {}: {}", 
-                    tool_call.function.name.as_ref().unwrap_or(&"unknown".to_string()), 
-                    tool_call.function.arguments.as_ref().unwrap_or(&"{}".to_string()));
+        if let Some(choices) = &complete_response.choices {
+            if let Some(first_choice) = choices.first() {
+                if let Some(message) = &first_choice.message {
+                    if let Some(tool_calls) = &message.tool_calls {
+                        println!("Functions to call:");
+                        for tool_call in tool_calls {
+                            println!("  - {}: {}", 
+                                tool_call.name.as_ref().unwrap_or(&"unknown".to_string()), 
+                                tool_call.arguments.as_ref().unwrap_or(&"{}".to_string()));
+                        }
+                    }
+                }
             }
         }
     }

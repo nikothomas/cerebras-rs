@@ -189,7 +189,6 @@ mod integration_tests {
     }
 
     // Test chat completion with streaming
-    #[cfg(feature = "stream")]
     #[tokio::test]
     async fn test_chat_completion_streaming() {
         if !requires_api_key() {
@@ -273,7 +272,6 @@ mod integration_tests {
     }
 
     // Test completion with streaming
-    #[cfg(feature = "stream")]
     #[tokio::test]
     async fn test_completion_streaming() {
         if !requires_api_key() {

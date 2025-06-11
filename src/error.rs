@@ -62,7 +62,6 @@ pub enum Error {
     ServerError(String),
     
     /// Streaming error
-    #[cfg(feature = "stream")]
     #[error("Streaming error: {0}")]
     Streaming(String),
     
