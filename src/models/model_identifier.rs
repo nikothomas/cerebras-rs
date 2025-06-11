@@ -1,7 +1,7 @@
 /*
  * Cerebras Inference API
  *
- * The Cerebras Inference API offers developers a low-latency solution for AI model inference  powered by Cerebras Wafer-Scale Engines and CS-3 systems. The API provides access to  high-performance language models with unprecedented speed for AI inference workloads. 
+ * The Cerebras Inference API offers developers a low-latency solution for AI model inference  powered by Cerebras Wafer-Scale Engines and CS-3 systems. The API provides access to  high-performance language models with unprecedented speed for AI inference workloads.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@cerebras.ai
@@ -11,7 +11,7 @@
 use crate::models;
 use serde::{Deserialize, Serialize};
 
-/// 
+///
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
 pub enum ModelIdentifier {
     #[serde(rename = "llama-4-scout-17b-16e-instruct")]
@@ -24,7 +24,6 @@ pub enum ModelIdentifier {
     Qwen332b,
     #[serde(rename = "deepseek-r1-distill-llama-70b")]
     DeepseekR1DistillLlama70b,
-
 }
 
 impl std::fmt::Display for ModelIdentifier {
@@ -44,4 +43,3 @@ impl Default for ModelIdentifier {
         Self::Llama4Scout17b16eInstruct
     }
 }
-

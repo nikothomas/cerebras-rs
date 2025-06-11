@@ -1,21 +1,21 @@
 //! High-level client for the Cerebras Inference API
-//! 
+//!
 //! This module provides an ergonomic client interface that wraps the generated API code
 //! with additional conveniences like builder patterns and streaming support.
 
 use crate::{
-    apis::{configuration::Configuration, default_api, ResponseContent},
-    models::*,
-    chat_message::Role,
     Error, Result,
+    apis::{ResponseContent, configuration::Configuration, default_api},
+    chat_message::Role,
+    models::*,
 };
 
 /// High-level client for interacting with the Cerebras Inference API
-/// 
+///
 /// # Example
 /// ```rust,no_run
 /// use cerebras_rs::Client;
-/// 
+///
 /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 /// let client = Client::from_env()?;
 /// # Ok(())
@@ -31,35 +31,36 @@ impl Client {
     pub fn new<S: Into<String>>(api_key: S) -> Self {
         let mut configuration = Configuration::new();
         configuration.bearer_access_token = Some(api_key.into());
-        
+
         Self { configuration }
     }
-    
+
     /// Create a new client from the CEREBRAS_API_KEY environment variable
     pub fn from_env() -> Result<Self> {
-        let api_key = std::env::var("CEREBRAS_API_KEY")
-            .map_err(|_| Error::Configuration("CEREBRAS_API_KEY environment variable not set".into()))?;
+        let api_key = std::env::var("CEREBRAS_API_KEY").map_err(|_| {
+            Error::Configuration("CEREBRAS_API_KEY environment variable not set".into())
+        })?;
         Ok(Self::new(api_key))
     }
-    
+
     /// Create a new client with a custom configuration
     pub fn with_configuration(configuration: Configuration) -> Self {
         Self { configuration }
     }
-    
+
     /// Set a custom base URL (useful for testing or proxies)
     pub fn with_base_url(mut self, base_url: String) -> Self {
         self.configuration.base_path = base_url;
         self
     }
-    
+
     /// Get a reference to the underlying configuration
     pub fn configuration(&self) -> &Configuration {
         &self.configuration
     }
-    
+
     /// List available models
-    /// 
+    ///
     /// # Example
     /// ```rust,no_run
     /// # use cerebras_rs::Client;
@@ -68,8 +69,8 @@ impl Client {
     /// let models = client.list_models().await?;
     /// if let Some(data) = &models.data {
     ///     for model in data {
-    ///         println!("{}: {}", 
-    ///             model.id.as_ref().unwrap_or(&"unknown".to_string()), 
+    ///         println!("{}: {}",
+    ///             model.id.as_ref().unwrap_or(&"unknown".to_string()),
     ///             model.owned_by.as_ref().unwrap_or(&"unknown".to_string()));
     ///     }
     /// }
@@ -83,7 +84,7 @@ impl Client {
             _ => Err(Error::Api("Unexpected response format".into())),
         }
     }
-    
+
     /// Retrieve details about a specific model
     pub async fn get_model(&self, model: ModelIdentifier) -> Result<Model> {
         let response = default_api::retrieve_model(&self.configuration, model).await?;
@@ -92,9 +93,9 @@ impl Client {
             _ => Err(Error::Api("Unexpected response format".into())),
         }
     }
-    
+
     /// Create a chat completion
-    /// 
+    ///
     /// # Example
     /// ```rust,no_run
     /// # use cerebras_rs::{Client, ChatCompletionRequest, ChatMessage, ModelIdentifier};
@@ -108,7 +109,7 @@ impl Client {
     ///     ],
     ///     ..Default::default()
     /// };
-    /// 
+    ///
     /// let response = client.chat_completion(request).await?;
     /// if let Some(choices) = &response.choices {
     ///     if let Some(first_choice) = choices.first() {
@@ -120,23 +121,26 @@ impl Client {
     /// # Ok(())
     /// # }
     /// ```
-    pub async fn chat_completion(&self, request: ChatCompletionRequest) -> Result<CreateChatCompletionResponse> {
+    pub async fn chat_completion(
+        &self,
+        request: ChatCompletionRequest,
+    ) -> Result<CreateChatCompletionResponse> {
         let response = default_api::create_chat_completion(&self.configuration, request).await?;
         match response.entity {
-            Some(default_api::CreateChatCompletionSuccess::Status200(resp)) => {
-                match resp {
-                    CreateChatCompletion200Response::CreateChatCompletionResponse(completion) => Ok(completion),
-                    CreateChatCompletion200Response::ChatCompletionChunk(_) => {
-                        Err(Error::Api("Unexpected streaming response for non-streaming request".into()))
-                    }
+            Some(default_api::CreateChatCompletionSuccess::Status200(resp)) => match resp {
+                CreateChatCompletion200Response::CreateChatCompletionResponse(completion) => {
+                    Ok(completion)
                 }
-            }
+                CreateChatCompletion200Response::ChatCompletionChunk(_) => Err(Error::Api(
+                    "Unexpected streaming response for non-streaming request".into(),
+                )),
+            },
             _ => Err(Error::Api("Unexpected response format".into())),
         }
     }
-    
+
     /// Create a chat completion with streaming
-    /// 
+    ///
     /// # Example
     /// ```rust,no_run
     /// # use cerebras_rs::{Client, ChatCompletionRequest, ChatMessage, ModelIdentifier};
@@ -149,7 +153,7 @@ impl Client {
     ///     stream: Some(true),
     ///     ..Default::default()
     /// };
-    /// 
+    ///
     /// let mut stream = client.chat_completion_stream(request).await?;
     /// while let Some(chunk) = stream.next().await {
     ///     match chunk {
@@ -167,23 +171,21 @@ impl Client {
         request.stream = Some(true);
         crate::streaming::ChatCompletionStream::new(&self.configuration, request).await
     }
-    
+
     /// Create a text completion
     pub async fn completion(&self, request: CompletionRequest) -> Result<CreateCompletionResponse> {
         let response = default_api::create_completion(&self.configuration, request).await?;
         match response.entity {
-            Some(default_api::CreateCompletionSuccess::Status200(resp)) => {
-                match resp {
-                    CreateCompletion200Response::CreateCompletionResponse(completion) => Ok(completion),
-                    CreateCompletion200Response::CompletionChunk(_) => {
-                        Err(Error::Api("Unexpected streaming response for non-streaming request".into()))
-                    }
-                }
-            }
+            Some(default_api::CreateCompletionSuccess::Status200(resp)) => match resp {
+                CreateCompletion200Response::CreateCompletionResponse(completion) => Ok(completion),
+                CreateCompletion200Response::CompletionChunk(_) => Err(Error::Api(
+                    "Unexpected streaming response for non-streaming request".into(),
+                )),
+            },
             _ => Err(Error::Api("Unexpected response format".into())),
         }
     }
-    
+
     /// Create a text completion with streaming
     pub async fn completion_stream(
         &self,
@@ -206,7 +208,7 @@ impl ChatMessage {
             tool_call_id: None,
         }
     }
-    
+
     /// Create a user message
     pub fn user<S: Into<String>>(content: S) -> Self {
         Self {
@@ -217,7 +219,7 @@ impl ChatMessage {
             tool_call_id: None,
         }
     }
-    
+
     /// Create an assistant message
     pub fn assistant<S: Into<String>>(content: S) -> Self {
         Self {
@@ -228,7 +230,7 @@ impl ChatMessage {
             tool_call_id: None,
         }
     }
-    
+
     /// Create a tool message
     pub fn tool<S: Into<String>>(content: S, tool_call_id: S) -> Self {
         Self {
@@ -244,19 +246,22 @@ impl ChatMessage {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_client_creation() {
         let client = Client::new("test-key");
-        assert_eq!(client.configuration.bearer_access_token, Some("test-key".to_string()));
+        assert_eq!(
+            client.configuration.bearer_access_token,
+            Some("test-key".to_string())
+        );
     }
-    
+
     #[test]
     fn test_chat_message_helpers() {
         let system = ChatMessage::system("You are helpful");
         assert_eq!(system.role, Role::System);
         assert_eq!(system.content, "You are helpful");
-        
+
         let user = ChatMessage::user("Hello");
         assert_eq!(user.role, Role::User);
         assert_eq!(user.content, "Hello");

@@ -1,7 +1,7 @@
 /*
  * Cerebras Inference API
  *
- * The Cerebras Inference API offers developers a low-latency solution for AI model inference  powered by Cerebras Wafer-Scale Engines and CS-3 systems. The API provides access to  high-performance language models with unprecedented speed for AI inference workloads. 
+ * The Cerebras Inference API offers developers a low-latency solution for AI model inference  powered by Cerebras Wafer-Scale Engines and CS-3 systems. The API provides access to  high-performance language models with unprecedented speed for AI inference workloads.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@cerebras.ai
@@ -45,7 +45,7 @@ impl Completion {
         }
     }
 }
-/// 
+///
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
 pub enum Object {
     #[serde(rename = "text_completion")]
@@ -57,4 +57,3 @@ impl Default for Object {
         Self::TextCompletion
     }
 }
-

@@ -1,5 +1,5 @@
 //! Builder patterns for constructing API requests
-//! 
+//!
 //! This module provides ergonomic builder patterns for creating various request types.
 
 mod chat_completion_builder;

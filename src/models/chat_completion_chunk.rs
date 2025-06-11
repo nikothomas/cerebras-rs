@@ -1,7 +1,7 @@
 /*
  * Cerebras Inference API
  *
- * The Cerebras Inference API offers developers a low-latency solution for AI model inference  powered by Cerebras Wafer-Scale Engines and CS-3 systems. The API provides access to  high-performance language models with unprecedented speed for AI inference workloads. 
+ * The Cerebras Inference API offers developers a low-latency solution for AI model inference  powered by Cerebras Wafer-Scale Engines and CS-3 systems. The API provides access to  high-performance language models with unprecedented speed for AI inference workloads.
  *
  * The version of the OpenAPI document: 1.0.0
  * Contact: support@cerebras.ai
@@ -39,7 +39,7 @@ impl ChatCompletionChunk {
         }
     }
 }
-/// 
+///
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
 pub enum Object {
     #[serde(rename = "chat.completion.chunk")]
@@ -51,4 +51,3 @@ impl Default for Object {
         Self::ChatPeriodCompletionPeriodChunk
     }
 }
-

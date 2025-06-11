@@ -6,7 +6,7 @@ use cerebras_rs::prelude::*;
 async fn main() -> Result<()> {
     // Initialize the client from environment variable
     let client = Client::from_env()?;
-    
+
     // Example 1: Simple chat completion
     println!("=== Simple Chat Completion ===");
     let request = ChatCompletionRequest::builder(ModelIdentifier::Llama3Period18b)
@@ -15,7 +15,7 @@ async fn main() -> Result<()> {
         .temperature(0.7)
         .max_tokens(100)
         .build();
-    
+
     let response = client.chat_completion(request).await?;
     if let Some(choices) = &response.choices {
         if let Some(first_choice) = choices.first() {
@@ -24,7 +24,7 @@ async fn main() -> Result<()> {
             }
         }
     }
-    
+
     // Example 2: Multi-turn conversation
     println!("\n=== Multi-turn Conversation ===");
     let request = ChatCompletionRequest::builder(ModelIdentifier::Llama3Period18b)
@@ -34,7 +34,7 @@ async fn main() -> Result<()> {
         .user_message("Great! Now what is 42 * 3?")
         .temperature(0.5)
         .build();
-    
+
     let response = client.chat_completion(request).await?;
     if let Some(choices) = &response.choices {
         if let Some(first_choice) = choices.first() {
@@ -43,14 +43,14 @@ async fn main() -> Result<()> {
             }
         }
     }
-    
+
     // Example 3: Using different models
     println!("\n=== Using Different Models ===");
     let models = vec![
         ModelIdentifier::Llama3Period18b,
         ModelIdentifier::Llama3Period370b,
     ];
-    
+
     for model in models {
         println!("\nUsing model: {:?}", model);
         let request = ChatCompletionRequest::builder(model)
@@ -58,7 +58,7 @@ async fn main() -> Result<()> {
             .temperature(0.9)
             .max_tokens(50)
             .build();
-        
+
         let response = client.chat_completion(request).await?;
         if let Some(choices) = &response.choices {
             if let Some(first_choice) = choices.first() {
@@ -68,7 +68,7 @@ async fn main() -> Result<()> {
             }
         }
     }
-    
+
     // Example 4: JSON response format
     println!("\n=== JSON Response Format ===");
     // First example - just asking for JSON in the prompt
@@ -76,7 +76,7 @@ async fn main() -> Result<()> {
         .user_message("List 3 programming languages with their main use cases in JSON format")
         .temperature(0.3)
         .build();
-    
+
     let response = client.chat_completion(request).await?;
     if let Some(choices) = &response.choices {
         if let Some(first_choice) = choices.first() {
@@ -85,7 +85,7 @@ async fn main() -> Result<()> {
             }
         }
     }
-    
+
     // Example 4b: Using JSON schema (commented out as it requires API support)
     // println!("\n=== JSON Schema Response Format ===");
     // let schema = serde_json::json!({
@@ -108,13 +108,13 @@ async fn main() -> Result<()> {
     //     },
     //     "required": ["languages"]
     // });
-    // 
+    //
     // let request = ChatCompletionRequest::builder(ModelIdentifier::Llama3Period18b)
     //     .user_message("List 3 programming languages with their main use cases")
     //     .json_schema("programming_languages", schema, true)
     //     .temperature(0.3)
     //     .build();
-    // 
+    //
     // let response = client.chat_completion(request).await?;
     // if let Some(choices) = &response.choices {
     //     if let Some(first_choice) = choices.first() {
@@ -123,7 +123,7 @@ async fn main() -> Result<()> {
     //         }
     //     }
     // }
-    
+
     // Example 5: Using stop sequences
     println!("\n=== Using Stop Sequences ===");
     let request = ChatCompletionRequest::builder(ModelIdentifier::Llama3Period18b)
@@ -131,7 +131,7 @@ async fn main() -> Result<()> {
         .stop_sequence("5")
         .temperature(0.1)
         .build();
-    
+
     let response = client.chat_completion(request).await?;
     if let Some(choices) = &response.choices {
         if let Some(first_choice) = choices.first() {
@@ -140,7 +140,7 @@ async fn main() -> Result<()> {
             }
         }
     }
-    
+
     // Print usage information
     if let Some(usage) = &response.usage {
         println!("\nToken usage:");
@@ -154,7 +154,7 @@ async fn main() -> Result<()> {
             println!("  Total tokens: {}", total_tokens);
         }
     }
-    
+
     // Print timing information
     if let Some(time_info) = &response.time_info {
         println!("\nTiming information:");
@@ -171,6 +171,6 @@ async fn main() -> Result<()> {
             println!("  Total time: {:.3}s", total_time);
         }
     }
-    
+
     Ok(())
 }

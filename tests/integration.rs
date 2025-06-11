@@ -12,8 +12,8 @@ use cerebras_rs::{
     Client, Configuration, ModelIdentifier,
     models::{ChatCompletionRequest, ChatMessage, CompletionRequest},
 };
-use std::env;
 use futures::stream::StreamExt;
+use std::env;
 
 #[cfg(test)]
 mod integration_tests {
@@ -34,7 +34,8 @@ mod integration_tests {
     // Helper function to create a test client
     fn create_test_client() -> Client {
         // Use from_env() which properly handles the API key
-        Client::from_env().expect("Failed to create client from CEREBRAS_API_KEY environment variable")
+        Client::from_env()
+            .expect("Failed to create client from CEREBRAS_API_KEY environment variable")
     }
 
     // Helper function to create a test chat completion request
@@ -67,22 +68,23 @@ mod integration_tests {
 
         let client = create_test_client();
         let result = client.list_models().await;
-        
+
         assert!(result.is_ok(), "Failed to list models: {:?}", result.err());
         let models = result.unwrap();
-        
+
         assert!(models.data.is_some(), "No models data returned");
         let data = models.data.unwrap();
         assert!(!data.is_empty(), "No models returned");
-        
+
         // Verify at least one model has expected fields
         let first_model = &data[0];
         assert!(first_model.id.is_some(), "Model ID is missing");
         assert!(first_model.owned_by.is_some(), "Model owner is missing");
-        
+
         println!("Found {} models", data.len());
         for model in data.iter().take(5) {
-            println!("  - {}: owned by {}", 
+            println!(
+                "  - {}: owned by {}",
                 model.id.as_ref().unwrap_or(&"unknown".to_string()),
                 model.owned_by.as_ref().unwrap_or(&"unknown".to_string())
             );
@@ -98,16 +100,17 @@ mod integration_tests {
 
         let client = create_test_client();
         let result = client.get_model(ModelIdentifier::Llama3Period18b).await;
-        
+
         assert!(result.is_ok(), "Failed to get model: {:?}", result.err());
         let model = result.unwrap();
-        
+
         assert!(model.id.is_some(), "Model ID is missing");
         let model_id = model.id.clone().unwrap();
         assert_eq!(model_id, "llama3.1-8b");
         assert!(model.owned_by.is_some(), "Model owner is missing");
-        
-        println!("Retrieved model: {} (owned by {})", 
+
+        println!(
+            "Retrieved model: {} (owned by {})",
             model.id.as_ref().unwrap_or(&"unknown".to_string()),
             model.owned_by.as_ref().unwrap_or(&"unknown".to_string())
         );
@@ -133,24 +136,31 @@ mod integration_tests {
         };
 
         let result = client.chat_completion(request).await;
-        assert!(result.is_ok(), "Failed to create chat completion: {:?}", result.err());
-        
+        assert!(
+            result.is_ok(),
+            "Failed to create chat completion: {:?}",
+            result.err()
+        );
+
         let response = result.unwrap();
         assert!(response.choices.is_some(), "No choices in response");
-        
+
         let choices = response.choices.unwrap();
         assert!(!choices.is_empty(), "Empty choices array");
-        
+
         let first_choice = &choices[0];
         assert!(first_choice.message.is_some(), "No message in choice");
-        
+
         let message = first_choice.message.as_ref().unwrap();
         println!("Assistant response: {}", message.content);
-        
+
         // Verify response metadata
         assert!(response.usage.is_some(), "No usage data");
         let usage = response.usage.unwrap();
-        assert!(usage.total_tokens.is_some() && usage.total_tokens.unwrap() > 0, "Invalid token count");
+        assert!(
+            usage.total_tokens.is_some() && usage.total_tokens.unwrap() > 0,
+            "Invalid token count"
+        );
     }
 
     // Test chat completion with multiple messages
@@ -175,17 +185,23 @@ mod integration_tests {
         };
 
         let result = client.chat_completion(request).await;
-        assert!(result.is_ok(), "Failed to create chat completion: {:?}", result.err());
-        
+        assert!(
+            result.is_ok(),
+            "Failed to create chat completion: {:?}",
+            result.err()
+        );
+
         let response = result.unwrap();
         let choices = response.choices.unwrap();
         let first_choice = &choices[0];
         let message = first_choice.message.as_ref().unwrap();
         println!("Assistant response: {}", message.content);
-        
+
         // The response should mention 16 since 4^2 = 16
-        assert!(message.content.to_lowercase().contains("16"), 
-            "Expected response to contain '16'");
+        assert!(
+            message.content.to_lowercase().contains("16"),
+            "Expected response to contain '16'"
+        );
     }
 
     // Test chat completion with streaming
@@ -208,16 +224,22 @@ mod integration_tests {
             ..Default::default()
         };
 
-        let mut stream = client.chat_completion_stream(request).await
+        let mut stream = client
+            .chat_completion_stream(request)
+            .await
             .expect("Failed to create chat completion stream");
-        
+
         let mut full_response = String::new();
         let mut chunk_count = 0;
-        
+
         while let Some(chunk_result) = stream.next().await {
-            assert!(chunk_result.is_ok(), "Stream chunk error: {:?}", chunk_result.err());
+            assert!(
+                chunk_result.is_ok(),
+                "Stream chunk error: {:?}",
+                chunk_result.err()
+            );
             let chunk = chunk_result.unwrap();
-            
+
             if let Some(choices) = &chunk.choices {
                 if let Some(choice) = choices.first() {
                     if let Some(delta) = &choice.delta {
@@ -230,7 +252,7 @@ mod integration_tests {
                 }
             }
         }
-        
+
         println!("\nReceived {} chunks", chunk_count);
         assert!(chunk_count > 1, "Expected multiple chunks in stream");
         assert!(!full_response.is_empty(), "No content received from stream");
@@ -253,20 +275,24 @@ mod integration_tests {
         };
 
         let result = client.completion(request).await;
-        assert!(result.is_ok(), "Failed to create completion: {:?}", result.err());
-        
+        assert!(
+            result.is_ok(),
+            "Failed to create completion: {:?}",
+            result.err()
+        );
+
         let response = result.unwrap();
         assert!(response.choices.is_some(), "No choices in response");
-        
+
         let choices = response.choices.unwrap();
         assert!(!choices.is_empty(), "Empty choices array");
-        
+
         let first_choice = &choices[0];
         assert!(first_choice.text.is_some(), "No text in choice");
-        
+
         let text = first_choice.text.as_ref().unwrap();
         println!("Completion: {}", text);
-        
+
         // The response should be non-empty and contain some text
         assert!(!text.trim().is_empty(), "Expected non-empty completion");
     }
@@ -288,16 +314,22 @@ mod integration_tests {
             ..Default::default()
         };
 
-        let mut stream = client.completion_stream(request).await
+        let mut stream = client
+            .completion_stream(request)
+            .await
             .expect("Failed to create completion stream");
-        
+
         let mut full_response = String::new();
         let mut chunk_count = 0;
-        
+
         while let Some(chunk_result) = stream.next().await {
-            assert!(chunk_result.is_ok(), "Stream chunk error: {:?}", chunk_result.err());
+            assert!(
+                chunk_result.is_ok(),
+                "Stream chunk error: {:?}",
+                chunk_result.err()
+            );
             let chunk = chunk_result.unwrap();
-            
+
             if let Some(choices) = &chunk.choices {
                 if let Some(choice) = choices.first() {
                     if let Some(text) = &choice.text {
@@ -308,7 +340,7 @@ mod integration_tests {
                 }
             }
         }
-        
+
         println!("\nReceived {} chunks", chunk_count);
         assert!(chunk_count > 1, "Expected multiple chunks in stream");
         assert!(!full_response.is_empty(), "No content received from stream");
@@ -346,13 +378,13 @@ mod integration_tests {
         }
 
         let client = create_test_client();
-        
+
         // Test with temperature 0 (deterministic)
         let request_deterministic = ChatCompletionRequest {
             model: ModelIdentifier::Llama3Period18b,
-            messages: vec![
-                ChatMessage::user("What is 1+1? Reply with just the number."),
-            ],
+            messages: vec![ChatMessage::user(
+                "What is 1+1? Reply with just the number.",
+            )],
             max_tokens: Some(5),
             temperature: Some(0.0),
             ..Default::default()
@@ -364,21 +396,27 @@ mod integration_tests {
         let choices1 = response1.choices.unwrap();
         let message1 = choices1[0].message.as_ref().unwrap();
         let text1 = &message1.content;
-        
+
         // Second call with same parameters should give same result
         let result2 = client.chat_completion(request_deterministic).await;
-        assert!(result2.is_ok(), "Second request failed: {:?}", result2.err());
+        assert!(
+            result2.is_ok(),
+            "Second request failed: {:?}",
+            result2.err()
+        );
         let response2 = result2.unwrap();
         let choices2 = response2.choices.unwrap();
         let message2 = choices2[0].message.as_ref().unwrap();
         let text2 = &message2.content;
-        
+
         println!("Temperature 0.0 - Response 1: {}", text1);
         println!("Temperature 0.0 - Response 2: {}", text2);
-        
+
         // Both should contain "2"
-        assert!(text1.contains("2") && text2.contains("2"), 
-            "Expected both responses to contain '2'");
+        assert!(
+            text1.contains("2") && text2.contains("2"),
+            "Expected both responses to contain '2'"
+        );
     }
 
     // Test max_tokens limit
@@ -391,24 +429,29 @@ mod integration_tests {
         let client = create_test_client();
         let request = ChatCompletionRequest {
             model: ModelIdentifier::Llama3Period18b,
-            messages: vec![
-                ChatMessage::user("Tell me a very long story about dragons."),
-            ],
+            messages: vec![ChatMessage::user(
+                "Tell me a very long story about dragons.",
+            )],
             max_tokens: Some(10), // Very low limit
             ..Default::default()
         };
 
         let result = client.chat_completion(request).await;
         assert!(result.is_ok());
-        
+
         let response = result.unwrap();
         let usage = response.usage.unwrap();
-        
+
         // Completion tokens should be around our limit
-        assert!(usage.completion_tokens.unwrap() <= 15, 
-            "Expected completion tokens to be limited");
-        
-        println!("Completion tokens used: {}", usage.completion_tokens.unwrap());
+        assert!(
+            usage.completion_tokens.unwrap() <= 15,
+            "Expected completion tokens to be limited"
+        );
+
+        println!(
+            "Completion tokens used: {}",
+            usage.completion_tokens.unwrap()
+        );
     }
 
     #[tokio::test]
@@ -425,10 +468,16 @@ mod integration_tests {
         let mut config = Configuration::new();
         config.bearer_access_token = Some("custom-key".to_string());
         config.base_path = "https://custom.example.com".to_string();
-        
+
         let client = Client::with_configuration(config);
-        assert_eq!(client.configuration().base_path, "https://custom.example.com");
-        assert_eq!(client.configuration().bearer_access_token, Some("custom-key".to_string()));
+        assert_eq!(
+            client.configuration().base_path,
+            "https://custom.example.com"
+        );
+        assert_eq!(
+            client.configuration().bearer_access_token,
+            Some("custom-key".to_string())
+        );
     }
 
     #[tokio::test]
@@ -436,7 +485,10 @@ mod integration_tests {
         // Test creating client with explicit API key
         let client = Client::new("test-api-key");
         assert!(!client.configuration().base_path.is_empty());
-        assert_eq!(client.configuration().bearer_access_token, Some("test-api-key".to_string()));
+        assert_eq!(
+            client.configuration().bearer_access_token,
+            Some("test-api-key".to_string())
+        );
     }
 
     #[tokio::test]
@@ -466,8 +518,7 @@ mod integration_tests {
 
     #[tokio::test]
     async fn test_with_base_url() {
-        let client = create_test_client()
-            .with_base_url("http://example.com".to_string());
+        let client = create_test_client().with_base_url("http://example.com".to_string());
         assert_eq!(client.configuration().base_path, "http://example.com");
     }
 
@@ -477,7 +528,6 @@ mod integration_tests {
         let client = Client::with_configuration(config);
         assert!(!client.configuration().base_path.is_empty());
     }
-
 }
 
 // Add any additional test helpers below

@@ -1,15 +1,15 @@
 //! Streaming support for Cerebras API responses
 
-use futures_util::{Stream, StreamExt};
 use eventsource_stream::Eventsource;
+use futures_util::{Stream, StreamExt};
 use pin_project_lite::pin_project;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
 use crate::{
+    Error, Result,
     apis::{configuration::Configuration, default_api},
     models::*,
-    Error, Result,
 };
 
 pin_project! {
@@ -29,24 +29,28 @@ impl ChatCompletionStream {
         // Ensure streaming is enabled
         let mut request = request;
         request.stream = Some(true);
-        
+
         // Make the request
-        let response = configuration.client
+        let response = configuration
+            .client
             .post(&format!("{}/chat/completions", configuration.base_path))
-            .bearer_auth(configuration.bearer_access_token.as_ref().ok_or_else(|| {
-                Error::Configuration("No API key configured".into())
-            })?)
+            .bearer_auth(
+                configuration
+                    .bearer_access_token
+                    .as_ref()
+                    .ok_or_else(|| Error::Configuration("No API key configured".into()))?,
+            )
             .json(&request)
             .send()
             .await
             .map_err(Error::Http)?;
-            
+
         if !response.status().is_success() {
             let status = response.status();
             let text = response.text().await.unwrap_or_default();
             return Err(Error::Api(format!("HTTP {}: {}", status, text)));
         }
-        
+
         // Create event stream
         let stream = response
             .bytes_stream()
@@ -66,12 +70,12 @@ impl ChatCompletionStream {
                     Err(e) => Some(Err(Error::Streaming(format!("Event stream error: {}", e)))),
                 }
             });
-            
+
         Ok(Self {
             inner: Box::pin(stream),
         })
     }
-    
+
     /// Collect all chunks into a complete response
     pub async fn collect(mut self) -> Result<ChatCompletion> {
         let mut messages = Vec::new();
@@ -79,10 +83,10 @@ impl ChatCompletionStream {
         let mut id = None;
         let mut created = None;
         let mut finish_reason = None;
-        
+
         while let Some(chunk) = self.next().await {
             let chunk = chunk?;
-            
+
             if id.is_none() && chunk.id.is_some() {
                 id = chunk.id;
             }
@@ -92,7 +96,7 @@ impl ChatCompletionStream {
             if created.is_none() && chunk.created.is_some() {
                 created = chunk.created;
             }
-            
+
             if let Some(choices) = chunk.choices {
                 for choice in choices {
                     if let Some(delta) = choice.delta {
@@ -119,7 +123,7 @@ impl ChatCompletionStream {
                 }
             }
         }
-        
+
         Ok(ChatCompletion {
             id,
             object: Some(crate::models::chat_completion::Object::ChatPeriodCompletion),
@@ -145,7 +149,7 @@ impl ChatCompletionStream {
 
 impl Stream for ChatCompletionStream {
     type Item = Result<ChatCompletionChunk>;
-    
+
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let this = self.project();
         this.inner.poll_next(cx)
@@ -162,31 +166,32 @@ pin_project! {
 
 impl CompletionStream {
     /// Create a new completion stream
-    pub async fn new(
-        configuration: &Configuration,
-        request: CompletionRequest,
-    ) -> Result<Self> {
+    pub async fn new(configuration: &Configuration, request: CompletionRequest) -> Result<Self> {
         // Ensure streaming is enabled
         let mut request = request;
         request.stream = Some(true);
-        
+
         // Make the request
-        let response = configuration.client
+        let response = configuration
+            .client
             .post(&format!("{}/completions", configuration.base_path))
-            .bearer_auth(configuration.bearer_access_token.as_ref().ok_or_else(|| {
-                Error::Configuration("No API key configured".into())
-            })?)
+            .bearer_auth(
+                configuration
+                    .bearer_access_token
+                    .as_ref()
+                    .ok_or_else(|| Error::Configuration("No API key configured".into()))?,
+            )
             .json(&request)
             .send()
             .await
             .map_err(Error::Http)?;
-            
+
         if !response.status().is_success() {
             let status = response.status();
             let text = response.text().await.unwrap_or_default();
             return Err(Error::Api(format!("HTTP {}: {}", status, text)));
         }
-        
+
         // Create event stream
         let stream = response
             .bytes_stream()
@@ -206,12 +211,12 @@ impl CompletionStream {
                     Err(e) => Some(Err(Error::Streaming(format!("Event stream error: {}", e)))),
                 }
             });
-            
+
         Ok(Self {
             inner: Box::pin(stream),
         })
     }
-    
+
     /// Collect all chunks into a complete response
     pub async fn collect(mut self) -> Result<Completion> {
         let mut texts = Vec::new();
@@ -219,10 +224,10 @@ impl CompletionStream {
         let mut id = None;
         let mut created = None;
         let mut finish_reason = None;
-        
+
         while let Some(chunk) = self.next().await {
             let chunk = chunk?;
-            
+
             if id.is_none() && chunk.id.is_some() {
                 id = chunk.id;
             }
@@ -232,7 +237,7 @@ impl CompletionStream {
             if created.is_none() && chunk.created.is_some() {
                 created = chunk.created;
             }
-            
+
             if let Some(choices) = chunk.choices {
                 for choice in choices {
                     if let Some(text) = choice.text {
@@ -251,7 +256,7 @@ impl CompletionStream {
                 }
             }
         }
-        
+
         Ok(Completion {
             id,
             object: Some(crate::models::completion::Object::TextCompletion),
@@ -271,7 +276,7 @@ impl CompletionStream {
 
 impl Stream for CompletionStream {
     type Item = Result<CompletionChunk>;
-    
+
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let this = self.project();
         this.inner.poll_next(cx)
@@ -281,16 +286,16 @@ impl Stream for CompletionStream {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     // Note: Actual streaming tests would require a mock server
     // These are just compilation tests
-    
+
     #[test]
     fn test_stream_types() {
         // Ensure the types compile correctly
         fn assert_send<T: Send>() {}
         fn assert_stream<T: Stream>() {}
-        
+
         assert_send::<ChatCompletionStream>();
         assert_stream::<ChatCompletionStream>();
         assert_send::<CompletionStream>();

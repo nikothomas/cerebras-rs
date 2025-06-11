@@ -5,23 +5,23 @@
 #![allow(clippy::too_many_arguments)]
 
 //! # Cerebras Rust SDK
-//! 
+//!
 //! High-performance Rust SDK for the Cerebras Inference API, providing low-latency
 //! AI model inference powered by Cerebras Wafer-Scale Engines and CS-3 systems.
-//! 
+//!
 //! ## Features
-//! 
+//!
 //! - **Async/await support** - Built on tokio for high-performance async operations
 //! - **Streaming responses** - Real-time token streaming for chat and completions
 //! - **Type-safe API** - Strongly typed requests and responses
 //! - **Builder patterns** - Ergonomic API for constructing requests
 //! - **Comprehensive error handling** - Detailed error types for all failure modes
-//! 
+//!
 //! ## Quick Start
-//! 
+//!
 //! ```rust,no_run
 //! use cerebras_rs::{Client, ChatCompletionRequest, ChatMessage, ModelIdentifier};
-//! 
+//!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
 //!     let client = Client::new(std::env::var("CEREBRAS_API_KEY")?);
@@ -42,12 +42,12 @@
 //!     Ok(())
 //! }
 //! ```
-//! 
+//!
 //! You can also directly use the API client:
-//! 
+//!
 //! ```rust,no_run
 //! use cerebras_rs::Client;
-//! 
+//!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
 //!     let client = Client::new("your-api-key-here");
@@ -55,12 +55,12 @@
 //!     Ok(())
 //! }
 //! ```
-//! 
+//!
 //! ## Chat Completions
-//! 
+//!
 //! ```rust,no_run
 //! use cerebras_rs::{Client, ChatCompletionRequest, ChatMessage, ModelIdentifier};
-//! 
+//!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
 //!     let client = Client::from_env()?;
@@ -84,12 +84,12 @@
 //!     Ok(())
 //! }
 //! ```
-//! 
+//!
 //! ## Error Handling
-//! 
+//!
 //! ```rust,no_run
 //! use cerebras_rs::{Client, ChatCompletionRequest, ChatMessage, ModelIdentifier, Error};
-//! 
+//!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
 //!     let client = Client::from_env()?;
@@ -108,12 +108,12 @@
 //!     Ok(())
 //! }
 //! ```
-//! 
+//!
 //! ## Completions
-//! 
+//!
 //! ```rust,no_run
 //! use cerebras_rs::{Client, CompletionRequest, ModelIdentifier, models::Prompt};
-//! 
+//!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
 //!     let client = Client::from_env()?;
@@ -136,13 +136,13 @@
 //!     Ok(())
 //! }
 //! ```
-//! 
+//!
 //! ## Streaming
-//! 
+//!
 //! ```rust,no_run
 //! use cerebras_rs::{Client, ChatCompletionRequest, ModelIdentifier};
 //! use futures_util::StreamExt;
-//! 
+//!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
 //!     let client = Client::from_env()?;
@@ -174,15 +174,15 @@
 //!     Ok(())
 //! }
 //! ```
-//! 
+//!
 //! ## Function Calling
-//! 
+//!
 //! ```rust,no_run
 //! use cerebras_rs::{Client, ChatCompletionRequest, ChatMessage, ModelIdentifier};
 //! use cerebras_rs::models::{Tool, FunctionDefinition, tool::Type, ToolChoiceOption};
 //! use serde_json::json;
 //! use std::collections::HashMap;
-//! 
+//!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
 //!     let client = Client::from_env()?;
@@ -208,12 +208,12 @@
 //!     Ok(())
 //! }
 //! ```
-//! 
+//!
 //! ## Advanced: Custom Configuration
-//! 
+//!
 //! ```rust,no_run
 //! use cerebras_rs::{Client, Configuration, ChatCompletionRequest, ModelIdentifier};
-//! 
+//!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
 //!     // Create a custom configuration
@@ -234,25 +234,25 @@
 //! }
 //! ```
 
+extern crate base64;
+extern crate chrono;
+extern crate reqwest;
 extern crate serde;
 extern crate serde_json;
 extern crate serde_repr;
 extern crate url;
-extern crate reqwest;
 extern crate uuid;
-extern crate chrono;
-extern crate base64;
 
-extern crate tokio;
 extern crate async_trait;
+extern crate tokio;
 
-extern crate tokio_stream;
-extern crate futures_util;
 extern crate eventsource_stream;
+extern crate futures_util;
 extern crate pin_project_lite;
+extern crate tokio_stream;
 
-extern crate thiserror;
 extern crate anyhow;
+extern crate thiserror;
 
 pub mod apis;
 pub mod models;
@@ -281,24 +281,19 @@ pub use error::{Error, Result};
 // Prelude module for convenient imports
 pub mod prelude {
     //! The prelude module provides convenient imports for common usage.
-    //! 
+    //!
     //! # Example
     //! ```rust
     //! use cerebras_rs::prelude::*;
     //! ```
-    
+
     pub use crate::{
-        Client,
-        Error,
+        ChatCompletionRequest, ChatMessage, Client, CompletionRequest, Error, ModelIdentifier,
         Result,
-        ChatCompletionRequest,
-        ChatMessage,
-        CompletionRequest,
-        ModelIdentifier,
     };
-    
+
     pub use crate::streaming::{ChatCompletionStream, CompletionStream};
-    
+
     pub use crate::builders::{ChatCompletionBuilder, CompletionBuilder};
 }
 
